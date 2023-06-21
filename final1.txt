@@ -1,0 +1,207 @@
+from tkinter import Tk, Text, Scrollbar, Menu, messagebox, filedialog
+
+from gtts import gTTS
+import pygame, picamera
+import pytesseract
+import os,time
+from PIL import Image
+import numpy as np
+import cv2
+from pygame import mixer
+
+import datetime
+import pyaudio
+from subprocess import call
+import speech_recognition as sr
+import shelve
+import RPi.GPIO as GPIO
+import subprocess 
+
+
+
+
+
+
+dt=datetime.datetime.now()
+month=dt.month
+day=dt.day
+folderName=str(month)+'-'+str(day)
+
+
+
+
+#create the folders if its new day
+
+if folderName not in os.listdir('/home/supraja/Desktop/project/'):
+    validNewFolder=True
+    currentDir = '/home/supraja/Desktop/project/'+str(folderName)
+    try:
+        os.makedirs(currentDir)
+    except FILEEXISTSERROR:
+        pass
+   
+   
+    imageNum=0
+    shelfFile = shelve.open('number') #to store the count in shelve
+    shelfFile['imageNum']=imageNum
+    shelfFile.close()
+else:
+    #if folder is already there(not a new day)
+
+    shelfFile = shelve.open('number')
+    imageNum = shelfFile['imageNum']
+    shelfFile.close()
+
+
+
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Language button
+GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Capture button
+GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Read button
+
+
+
+camera = picamera.PiCamera()
+
+
+mixer.init()
+
+
+def capture_and_convert():
+    
+    camera.start_preview()
+    time.sleep(2)
+    camera.capture('/home/supraja/Desktop/project/' + str(folderName) + '/image.jpg')
+    camera.stop_preview()
+
+   
+    image = Image.open('/home/supraja/Desktop/project/' + str(folderName) + '/image.jpg')
+    grayscale_image = image.convert('L')
+    grayscale_image.save('/home/supraja/Desktop/project/' + str(folderName) + '/grayscale_image.jpg')
+
+
+    text = pytesseract.image_to_string(grayscale_image)
+
+    return text
+
+def output(text, lang='en'):
+    tts = gTTS(text=text, lang='en')
+    tts.save('/home/supraja/Desktop/project/'+str(folderName)+'/speech.mp3')
+    mixer.music.load('/home/supraja/Desktop/project/'+str(folderName)+'/speech.mp3')
+    mixer.music.play()
+
+
+def instruction(text):
+    tts = gTTS(text=text, lang='en')
+    tts.save('/home/supraja/Desktop/project/'+str(folderName)+'/sp.mp3')
+    mixer.music.load('/home/supraja/Desktop/project/'+str(folderName)+'/sp.mp3')
+    mixer.music.play()
+
+
+
+
+
+
+
+
+
+root = Tk()
+root.title("Text Editor")
+
+
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+
+editor_width = int(screen_width * 0.8)  # Adjust the width ratio as desired
+editor_height = int(screen_height * 0.8)  # Adjust the height ratio as desired
+
+
+text_editor = Text(root, wrap="word", undo=True, height=editor_height, width=editor_width)  # Increase height and width as desired
+text_editor.pack(expand=True, fill="both")
+
+
+scrollbar = Scrollbar(text_editor)
+text_editor.configure(yscrollcommand=scrollbar.set)
+scrollbar.config(command=text_editor.yview)
+scrollbar.pack(side="right", fill="y")
+
+
+menu_bar = Menu(root)
+root.config(menu=menu_bar)
+
+
+file_menu = Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="File", menu=file_menu)
+
+
+lang_selected = False
+picture_taken = False
+text_extracted = ""
+
+
+def save_file(text_extracted):
+    if lang_selected and picture_taken:
+        text = text_editor.get("1.0", "end-1c")  # Get the text content from the editor
+         text_editor.insert("1.0", text_extracted)  # Insert the extracted text into the editor
+         text_editor.see("1.0")  # Scroll to the top of the editor
+
+
+    folder_path = '/home/supraja/Desktop/project/' + str(folderName)
+    file_path = os.path.join(folder_path, 'text.txt')
+    try:
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        with open(file_path, "w") as file:
+            file.write(text_extracted)  # Write the text to the file
+        messagebox.showinfo("Information", "File saved successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+
+
+
+def main():
+    global lang_selected, picture_taken, text_extracted
+
+    lang_count = 0
+    text_extracted = ""
+    lang = ""
+
+
+    while True:
+        if GPIO.input(17) == GPIO.LOW:
+            lang_count += 1
+            if lang_count > 3:
+                lang_count = 1
+            if lang_count == 1:
+                lang = 'en'
+            elif lang_count == 2:
+                lang = 'fr'
+            else:
+                lang = 'es'
+            speak1("Press capture button to take picture.")
+            time.sleep(0.2)
+        if GPIO.input(27) == GPIO.LOW:
+            speak1("Taking picture.")
+            text_extracted = capture_and_convert()
+            speak1("Picture taken. Press read button to start reading.")
+            time.sleep(0.2)
+            picture_taken = True
+        if GPIO.input(22) == GPIO.LOW:
+            if text_extracted:
+                lang_selected = True
+                speak1("Reading text.")
+                speak(text_extracted, lang=lang)
+                save_file(text_extracted)
+                
+                time.sleep(0.2)
+            else:
+                messagebox.showwarning("Warning", "Please capture picture and extract text first.")
+
+if __name__ == '__main__':
+    try:
+        main()
+    finally:
+        GPIO.cleanup()
