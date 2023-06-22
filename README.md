@@ -13,11 +13,11 @@ The primary application of the TTS (Text to Speech) technology is the conversion
 audio or voice. After the TTS unit is installed on the Raspberry Pi, its output is sent to the speaker,
 where it is amplified with an audio amplifier.
 
-Modyles included in our project:
+Modules included in our project:
 
-Image Capturing
-Image Pre-processing
-Image to Text Conversion
+Image Capturing,
+Image Pre-processing,
+Image to Text Conversion,
 Text to Speech Conversion
 
 Conclusion and Future Scope:
