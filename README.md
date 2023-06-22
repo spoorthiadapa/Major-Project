@@ -12,3 +12,21 @@ it finds the document’s content, reads it out loud through the speaker if all 
 The primary application of the TTS (Text to Speech) technology is the conversion of text files into
 audio or voice. After the TTS unit is installed on the Raspberry Pi, its output is sent to the speaker,
 where it is amplified with an audio amplifier.
+
+Modyles included in our project:
+
+Image Capturing
+Image Pre-processing
+Image to Text Conversion
+Text to Speech Conversion
+
+Conclusion and Future Scope:
+
+Our focus is on enhancing the capabilities of blind people by providing them a solution so that
+the information can be fed to them in the form of a speech signal.
+As we are living in an era of technological development, so the room for improvement is always
+there. A plan is implemented in proposed method for the text in different languages which will serve
+millions of people. Moreover, more enhancements can be achieved by implementing it with high-
+resolution focused cameras which will then improve the extraction of text and more efficient text to
+speech synthesizer can be developed for swift conversation into the text. Also, the text editor can be
+developed in which the extracted text can be written simultaneously to the audio output.
